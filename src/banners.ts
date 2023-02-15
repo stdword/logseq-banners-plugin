@@ -328,12 +328,19 @@ const getPageAssetsData = async (currentPageData: any): Promise<AssetData> => {
 
   // Add title
   if (currentPageData.name) {
-    pageAssetsData.title = (currentPageData.name
+    let name = currentPageData.name.replaceAll(/[\])}[{(]/g, "").replaceAll("/", "-")
+
+    const skipSuffix = " — "
+    if (name.includes(skipSuffix)) {
+      name = name.split(skipSuffix).slice(1).join(skipSuffix)
+    }
+
+    pageAssetsData.title = (name
       .split(" ")
-      .slice(0,3)
+      .filter((x: string) => x.length > 3)
+
+      .slice(0, 3)
       .join("-")
-      .replaceAll(/[\])}[{(]/g, "")
-      .replaceAll("/", "-")
     );
   }
 
@@ -371,15 +378,20 @@ const cleanBannerURL = (url: string) => {
 }
 
 const renderBanner = async (pageAssetsData: AssetData, currentPageData: any): Promise<boolean> => {
-  if (pageAssetsData.banner) {
-    // Set banner CSS variable
-    body.classList.add("is-banner-active");
-    root.style.setProperty("--bannerHeight", `${pageAssetsData.bannerHeight}`);
-    root.style.setProperty("--bannerAlign", `${pageAssetsData.bannerAlign}`);
+  if (!pageAssetsData.banner) {
+    hideBanner();  // clear old banner
+    return false;
+  }
 
-    pageAssetsData.banner = cleanBannerURL(pageAssetsData.banner);
+  // Set banner CSS variable
+  body.classList.add("is-banner-active");
+  root.style.setProperty("--bannerHeight", `${pageAssetsData.bannerHeight}`);
+  root.style.setProperty("--bannerAlign", `${pageAssetsData.bannerAlign}`);
 
-    if (currentPageData && !currentPageData.properties["banner"] && autoPageBanner && pageAssetsData.title) {
+  pageAssetsData.banner = cleanBannerURL(pageAssetsData.banner);
+
+  if (currentPageData && currentPageData.properties && !currentPageData.properties["banner"]) {
+    if (autoPageBanner && pageAssetsData.title) {
       const defaultHeight = settingsArray.find(item => {return item.key == "pageBannerHeight"})!.default as string;
       const height = (pageAssetsData.bannerHeight || defaultHeight).replace("px", "");
       
@@ -389,21 +401,17 @@ const renderBanner = async (pageAssetsData: AssetData, currentPageData: any): Pr
       );
       console.debug(`#${pluginId}: Auto banner: ${JSON.stringify(pageAssetsData.banner)}`);
     }
-
-    const bannerImage = await getImagebyURL(pageAssetsData.banner);
-    if (bannerImage) {
-      pageAssetsData.banner = bannerImage;
-    } else {
-      pageAssetsData.banner = defaultConfig.page.banner;
-    }
-    root.style.setProperty("--pageBanner", `url(${pageAssetsData.banner})`);
-
-    return true;
-  } else {
-    // clear old banner
-    hideBanner();
-    return false;
   }
+
+  const bannerImage = await getImagebyURL(pageAssetsData.banner);
+  if (bannerImage) {
+    pageAssetsData.banner = bannerImage;
+  } else {
+    pageAssetsData.banner = defaultConfig.page.banner;
+  }
+  root.style.setProperty("--pageBanner", `url(${pageAssetsData.banner})`);
+
+  return true;
 }
 
 const getImagebyURL = async (url: string) => {
