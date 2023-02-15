@@ -35,7 +35,10 @@ let currentGraph: AppGraphInfo | null;
 let defaultConfig: AssetDataList;
 let widgetsConfig: WidgetsConfig;
 let oldWidgetsConfig: WidgetsConfig;
+
+let lastBannerURL: string;
 let autoPageBanner: boolean;
+const autoPageBannerURLPattern = "https://source.unsplash.com/1200x${height}?${title}";
 
 const pluginPageProps: Array<string> = ["banner", "banner-align", "color"];
 
@@ -242,7 +245,7 @@ const getBase64FromUrl = async (url: string): Promise<string> => {
 // Get and encode default banners for caching
 // skip caching if random image from Unsplash API used
 const encodeDefaultBanners = async () => {
-  if (defaultConfig.page.banner && !autoPageBanner && !(defaultConfig.page.banner?.includes("source.unsplash.com"))) {
+  if (!autoPageBanner && defaultConfig.page.banner && !(defaultConfig.page.banner?.includes("source.unsplash.com"))) {
     defaultConfig.page.banner = await getBase64FromUrl(cleanBannerURL(defaultConfig.page.banner));
   }
   if (defaultConfig.journal.banner && !(defaultConfig.journal.banner?.includes("source.unsplash.com"))) {
@@ -297,7 +300,7 @@ const getPageType = () => {
   }
 }
 
-const getPageAssetsData = async (): Promise<AssetData> => {
+const getPageAssetsData = async (currentPageData: any): Promise<AssetData> => {
   let pageAssetsData = { ...defaultConfig.journal };
   let currentPageProps: any = {};
 
@@ -306,8 +309,6 @@ const getPageAssetsData = async (): Promise<AssetData> => {
     console.debug(`#${pluginId}: Homepage`);
     return pageAssetsData;
   }
-
-  const currentPageData = await getPageData();
 
   // journal page?
   isJournal = currentPageData["journal?"];
@@ -328,7 +329,13 @@ const getPageAssetsData = async (): Promise<AssetData> => {
 
   // Add title
   if (currentPageData.name) {
-    pageAssetsData.title = currentPageData.name.split(" ").slice(0,3).join("-").replace(/[\])}[{(]/g, '');
+    pageAssetsData.title = (currentPageData.name
+      .split(" ")
+      .slice(0,3)
+      .join("-")
+      .replaceAll(/[\])}[{(]/g, "")
+      .replaceAll("/", "-")
+    );
   }
 
   console.debug(`#${pluginId}: pageAssetsData -- `, pageAssetsData);
@@ -364,7 +371,7 @@ const cleanBannerURL = (url: string) => {
   return url;
 }
 
-const renderBanner = async (pageAssetsData: AssetData): Promise<boolean> => {
+const renderBanner = async (pageAssetsData: AssetData, currentPageData: any): Promise<boolean> => {
   if (pageAssetsData.banner) {
     // Set banner CSS variable
     body.classList.add("is-banner-active");
@@ -373,9 +380,15 @@ const renderBanner = async (pageAssetsData: AssetData): Promise<boolean> => {
 
     pageAssetsData.banner = cleanBannerURL(pageAssetsData.banner);
 
-    if (autoPageBanner) {
-      pageAssetsData.banner = `https://source.unsplash.com/1600x900?${pageAssetsData.title}`;
-      console.log(`auto banner: ${JSON.stringify(pageAssetsData.banner)}`);
+    if (currentPageData && !currentPageData.properties["banner"] && autoPageBanner && pageAssetsData.title) {
+      const defaultHeight = settingsArray.find(item => {return item.key == "pageBannerHeight"})!.default as string;
+      const height = (pageAssetsData.bannerHeight || defaultHeight).replace("px", "");
+      
+      pageAssetsData.banner = (autoPageBannerURLPattern
+        .replace("${height}", height)
+        .replace("${title}", pageAssetsData.title)
+      );
+      console.debug(`#${pluginId}: Auto banner: ${JSON.stringify(pageAssetsData.banner)}`);
     }
 
     const bannerImage = await getImagebyURL(pageAssetsData.banner);
@@ -400,6 +413,7 @@ const getImagebyURL = async (url: string) => {
     if (response.url.includes("source-404")) {
       return "";
     }
+    lastBannerURL = response.url;
     const imageBlob = await response.blob();
     return URL.createObjectURL(imageBlob);
   }
@@ -631,20 +645,46 @@ const render = async () => {
 
   hidePageProps();
 
+  const currentPageData = await getPageData();
+
   let pageAssetsData: AssetData | null = null;
-  pageAssetsData = await getPageAssetsData();
+  pageAssetsData = await getPageAssetsData(currentPageData);
   if (pageAssetsData) {
     if (!pageAssetsData.banner || pageAssetsData.banner === "false" || pageAssetsData.banner === "off" || pageAssetsData.banner === "none" || pageAssetsData.banner === '""'  || pageAssetsData.banner === "''") {
       hideBanner();
       return;
     }
 
-    const isBannerRendered = await renderBanner(pageAssetsData);
+    const isBannerRendered = await renderBanner(pageAssetsData, currentPageData);
     if (isBannerRendered) {
       renderWidgets();
       showWidgetsPlaceholder();
     }
   }
+}
+
+const commandSaveBanner = async () => {
+  const currentPage = await getPageData();
+
+  const currentBanner = lastBannerURL;
+  const pageBanner = currentPage.properties["banner"];
+  if (pageBanner && pageBanner !== currentBanner) {
+    logseq.UI.showMsg(
+      'There is the "banner" propery in this page with a different value. Remove it manually and run this command again.',
+      "warning",
+      {timeout: 10000},
+    );
+    return;
+  }
+
+  const pageBannerAlign = currentPage.properties["banner-align"];
+  const currentBannerAlign = pageBannerAlign || getComputedStyle(root).getPropertyValue("--bannerAlign");
+
+  const [ propertiesBlock ] = await logseq.Editor.getPageBlocksTree(currentPage.name);
+  await logseq.Editor.upsertBlockProperty(propertiesBlock.uuid, "banner", currentBanner);
+  await logseq.Editor.upsertBlockProperty(propertiesBlock.uuid, "banner-align", currentBannerAlign);
+
+  logseq.UI.showMsg("Current banner saved to page properties");
 }
 
 const main = async () => {
@@ -670,6 +710,13 @@ const main = async () => {
 
   // Listeners late run
   propsChangedObserverInit();
+
+  logseq.App.registerCommandPalette({
+      key: "banners-save-for-page",
+      label: "Banners → Save banner for this page",
+  }, async (e) => {
+    commandSaveBanner();
+  });
 
   // Secondary listeners
   setTimeout(() => {
@@ -718,8 +765,7 @@ const main = async () => {
       body.classList.remove("is-icon-active");
     })
 
-  }, 4000);
-
+  }, 2000);
 }
 
 logseq.ready(main).catch(console.error);
