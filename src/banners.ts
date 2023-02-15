@@ -243,9 +243,8 @@ const getBase64FromUrl = async (url: string): Promise<string> => {
 }
 
 // Get and encode default banners for caching
-// skip caching if random image from Unsplash API used
 const encodeDefaultBanners = async () => {
-  if (!autoPageBanner && defaultConfig.page.banner && !(defaultConfig.page.banner?.includes("source.unsplash.com"))) {
+  if (defaultConfig.page.banner && !(defaultConfig.page.banner?.includes("source.unsplash.com"))) {
     defaultConfig.page.banner = await getBase64FromUrl(cleanBannerURL(defaultConfig.page.banner));
   }
   if (defaultConfig.journal.banner && !(defaultConfig.journal.banner?.includes("source.unsplash.com"))) {
@@ -411,7 +410,7 @@ const getImagebyURL = async (url: string) => {
   let response = await fetch(url)
   if (response.status === 200) {
     if (response.url.includes("source-404")) {
-      return "";
+      return "";   // for unsplash.com: requested image not found
     }
     lastBannerURL = response.url;
     const imageBlob = await response.blob();
