@@ -985,7 +985,7 @@ const render = async () => {
       return;
     }
 
-    const isBannerRendered = await renderBanner(pageAssetsData, currentPageData);
+    const isBannerRendered = await renderImage(pageAssetsData, currentPageData);
     if (isBannerRendered) {
       renderIcon(pageAssetsData);
       renderWidgets();
