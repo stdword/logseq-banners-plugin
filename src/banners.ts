@@ -1,4 +1,3 @@
-import "@logseq/libs";
 import { SettingSchemaDesc, AppGraphInfo } from "@logseq/libs/dist/LSPlugin.user";
 
 import mainStyles from "./banners.css";
@@ -14,11 +13,21 @@ type AssetData = {
   banner?: string;
   bannerHeight?: string;
   bannerAlign?: string;
+  pageIcon?: string;
+  iconWidth?: string;
+  icon?: string;
+}
+
+enum AssetType {
+  banner = "banner",
+  pageIcon = "pageIcon"
 }
 
 type WidgetsConfig = {
   calendar?: any;
+  weather?: any;
   quote?: any;
+  custom?: any;
 }
 
 const pluginId = PL.id;
@@ -33,31 +42,53 @@ let isPage: boolean;
 
 let currentGraph: AppGraphInfo | null;
 let defaultConfig: AssetDataList;
+let customPropsConfig: AssetDataList;
 let widgetsConfig: WidgetsConfig;
 let oldWidgetsConfig: WidgetsConfig;
+let isWidgetsCustomCodeChanged: boolean;
+let isWidgetsWeatherChanged: boolean;
+let hidePluginProps: boolean;
+let additionalSettings: any;
 
 let lastBannerURL: string;
 let autoPageBanner: boolean;
 const autoPageBannerURLPattern = "https://source.unsplash.com/1200x${height}?${title}";
 
-const pluginPageProps: Array<string> = ["banner", "banner-align", "color"];
+const pluginPageProps: Array<string> = ["banner", "banner-align","page-icon", "icon"];
 
 const settingsDefaultPageBanner = "https://wallpaperaccess.com/full/1146672.jpg";
 const settingsDefaultJournalBanner = "https://images.unsplash.com/photo-1646026371686-79950ceb6daa?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1034&q=80";
+const settingsWidgetsCustomCode = `<iframe id="banner-widgets-pomo" src="https://pomofocus.io/app"></iframe>`;
 
-const widgetsQuoteCleanupRegExps: RegExp[] = [
-  /\n[^:]+::[^\n]*/g,
-  /\nDEADLINE:.<[^>]+>/g,
-  /\nSCHEDULED:.<[^>]+>/g,
-  /\[\[/g,
-  /\]\]/g,
-  /#[^ #\n]+/g,
-  /#\[\[[^\]\n]+\]\]/g,
-  /==/g,
-  /\^\^/g,
+
+export const widgetsQuoteCleanupRegExps: RegExp[] = [
+  /* order is important here */
+  /\n[^:]+::[^\n]*/g,         // properties
+
+  /\nDEADLINE:\s+<[^>]+>/g,   // task attrs
+  /\nSCHEDULED:\s+<[^>]+>/g,
+  /\n:LOGBOOK:(.|\n)*?:END:/g,
+
+  /#\[\[[^\]\n]+\]\]\s*/g,    // tags with brackets
+  /#[^\s\n]+(\s|\n)*/g,       // tags
+  /!\[[^\]\n]+\]\([^\]]+\)/g, // images
 ];
 
 const settingsArray: SettingSchemaDesc[] = [
+  {
+    key: "generalHeading",
+    title: "⚙ General settings",
+    description: "",
+    type: "heading",
+    default: null
+  },
+  {
+    key: "hidePluginProps",
+    title: "",
+    description: "Hide plugin related page props? (will be shown only on edit)",
+    type: "boolean",
+    default: true,
+  },
   {
     key: "widgetsCalendarHeading",
     title: "📅 Widgets: calendar",
@@ -81,9 +112,29 @@ const settingsArray: SettingSchemaDesc[] = [
     type: "string",
     default: "380px",
   },
-
-
-
+  {
+    key: "widgetsWeatherHeading",
+    title: "⛅ Widgets: weather",
+    description: "",
+    type: "heading",
+    default: null
+  },
+  {
+    key: "widgetsWeatherEnabled",
+    title: "Show weather?",
+    description: "⚠ check readme for instructions! https://github.com/yoyurec/logseq-banners-plugin",
+    type: "enum",
+    enumPicker: "radio",
+    enumChoices: ["off", "journals", "everywhere"],
+    default: "journals",
+  },
+  {
+    key: "widgetsWeatherID",
+    title: "Weather ID",
+    description: "",
+    type: "string",
+    default: "7QOWaH4IPGGaAr4puql2",
+  },
   {
     key: "widgetsQuoteHeading",
     title: "💬 Widgets: quote",
@@ -93,7 +144,7 @@ const settingsArray: SettingSchemaDesc[] = [
   },
   {
     key: "widgetsQuoteEnabled",
-    title: "Show random quote?",
+    title: "Show random #quote?",
     description: "⚠ check readme for instructions! https://github.com/yoyurec/logseq-banners-plugin",
     type: "enum",
     enumPicker: "radio",
@@ -102,7 +153,7 @@ const settingsArray: SettingSchemaDesc[] = [
   },
   {
     key: "widgetsQuoteTag",
-    title: "Show random quotes with this tag",
+    title: "Show random quotes with this tag (case sensitive!)",
     description: "",
     type: "string",
     default: "#quote",
@@ -121,9 +172,29 @@ const settingsArray: SettingSchemaDesc[] = [
     type: "string",
     default: "100%",
   },
-
-
-
+  {
+    key: "widgetsCustomHeading",
+    title: "📊 Widgets: custom",
+    description: "",
+    type: "heading",
+    default: null
+  },
+  {
+    key: "widgetsCustomEnabled",
+    title: "Show custom?",
+    description: "⚠ check readme for instructions! https://github.com/yoyurec/logseq-banners-plugin",
+    type: "enum",
+    enumPicker: "radio",
+    enumChoices: ["off", "journals", "everywhere"],
+    default: "everywhere",
+  },
+  {
+    key: "widgetsCustomCode",
+    title: "",
+    description: "Show custom HTML (iframe for ex.) as widget",
+    type: "string",
+    default: settingsWidgetsCustomCode,
+  },
   {
     key: "journalHeading",
     title: "📆 Journal and home settings",
@@ -152,9 +223,20 @@ const settingsArray: SettingSchemaDesc[] = [
     type: "string",
     default: "50%"
   },
-
-
-
+  {
+    key: "defaultJournalIcon",
+    title: "Default icon (emoji) for journal and home page (set empty to disable)",
+    description: "",
+    type: "string",
+    default: "📅",
+  },
+  {
+    key: "journalIconWidth",
+    title: "Icon width for journal & home page (in px)",
+    description: "",
+    type: "string",
+    default: "50px",
+  },
   {
     key: "pageHeading",
     title: "📄 Common page settings",
@@ -184,20 +266,88 @@ const settingsArray: SettingSchemaDesc[] = [
     default: "50%"
   },
   {
+    key: "defaultPageIcon",
+    title: "Default icon (emoji) for common page (set empty to disable)",
+    description: "",
+    type: "string",
+    default: "📄",
+  },
+  {
+    key: "pageIconWidth",
+    title: "Icon width for common page (in px)",
+    description: "",
+    type: "string",
+    default: "40px",
+  },
+  {
+    key: "advancedHeading",
+    title: "☢️ Advanced settings",
+    description: "",
+    type: "heading",
+    default: null
+  },
+  {
     key: "autoPageBanner",
     title: "Turn on auto page banner mode?",
     type: "boolean",
-    description: "Autogenerate banner image URL according to the page tile",
+    description: "Autogenerate banner image URL according to the page title",
     default: "false",
   },
+  {
+    key: "customPropsConfig",
+    title: "Custom pages banners and icons config",
+    description: "",
+    type: "object",
+    default: {
+      "pageType": {
+        "evrgrn": {
+          "pageIcon": "🌳",
+          "banner": "https://images.unsplash.com/photo-1502082553048-f009c37129b9?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80",
+          "bannerHeight": "200px",
+          "bannerAlign": "50%"
+        },
+        "seed": {
+          "pageIcon": "🌱",
+          "banner": "https://images.unsplash.com/photo-1631949454967-6c6d07fb59cd?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80",
+          "bannerHeight": "200px",
+          "bannerAlign": "50%"
+        }
+      },
+      "anotherCamalCasedPropName": {}
+    }
+  },
+  {
+    // settings inside this object shouldn't be display in UI
+    key: "additional",
+    title: "A set of additional settings intended for more sensitive plugin tuning",
+    description: "",
+    type: "object",
+    default: {
+      quoteWidget: {
+        cleanupRegExps_before: [],
+        cleanupRegExps_after: []
+      }
+    }
+  }
 ]
 
+const initStyles = () => {
+  logseq.provideStyle(mainStyles);
+}
 
-const readPluginSettings = () => {
+const setGlobalCSSVars = () => {
+  setWidgetsCSSVars();
+}
+
+export const readPluginSettings = () => {
+  isWidgetsCustomCodeChanged = false;
+  isWidgetsWeatherChanged = false;
   oldWidgetsConfig = { ...widgetsConfig };
   widgetsConfig = {
     calendar: {},
+    weather: {},
     quote: {},
+    custom: {}
   };
   defaultConfig = {
     page: {},
@@ -206,24 +356,46 @@ const readPluginSettings = () => {
 
   if (logseq.settings) {
     ({
+      hidePluginProps,
       widgetsCalendarEnabled: widgetsConfig.calendar.enabled,
       widgetsCalendarWidth: widgetsConfig.calendar.width,
+      widgetsWeatherEnabled: widgetsConfig.weather.enabled,
+      widgetsWeatherID: widgetsConfig.weather.id,
       widgetsQuoteEnabled: widgetsConfig.quote.enabled,
       widgetsQuoteTag: widgetsConfig.quote.tag,
       widgetsQuoteMaxWidth: widgetsConfig.quote.maxwidth,
       widgetsQuoteSize: widgetsConfig.quote.size,
+      widgetsCustomEnabled: widgetsConfig.custom.enabled,
+      widgetsCustomCode: widgetsConfig.custom.code,
       defaultPageBanner: defaultConfig.page.banner,
       pageBannerHeight: defaultConfig.page.bannerHeight,
       pageBannerAlign: defaultConfig.page.bannerAlign,
-      autoPageBanner,
+      defaultPageIcon: defaultConfig.page.pageIcon,
+      pageIconWidth: defaultConfig.page.iconWidth,
       defaultJournalBanner: defaultConfig.journal.banner,
       journalBannerHeight: defaultConfig.journal.bannerHeight,
       journalBannerAlign: defaultConfig.journal.bannerAlign,
+      defaultJournalIcon: defaultConfig.journal.pageIcon,
+      journalIconWidth: defaultConfig.journal.iconWidth,
+      autoPageBanner,
+      customPropsConfig,
+      additional: additionalSettings
     } = logseq.settings);
   }
   encodeDefaultBanners();
 }
 
+// Toggle features on settings changes
+const toggleFeatures = () => {
+  if (widgetsConfig.custom.code !== oldWidgetsConfig.custom.code) {
+    isWidgetsCustomCodeChanged = true;
+  }
+  if (widgetsConfig.weather.id !== oldWidgetsConfig.weather.id) {
+    isWidgetsWeatherChanged = true;
+  }
+}
+
+// Generate Base64 from image URL
 const getBase64FromUrl = async (url: string): Promise<string> => {
   let data;
   try {
@@ -264,6 +436,7 @@ const getRGBValues = (color: string) => {
   return `${rgbaArray[0]}, ${rgbaArray[1]}, ${rgbaArray[2]}`;
 }
 
+// Primary colors vars
 const setWidgetPrimaryColors = () => {
   const primaryTextcolor = getComputedStyle(top!.document.documentElement).getPropertyValue('--ls-primary-text-color').trim();
   root.style.setProperty("--widgetsTextColor", getRGBValues(primaryTextcolor));
@@ -271,6 +444,7 @@ const setWidgetPrimaryColors = () => {
   root.style.setProperty("--widgetsBgColor", getRGBValues(primaryBgcolor));
 }
 
+// Hide page props
 const hidePageProps = () => {
   const propBlockKeys = doc.getElementsByClassName("page-property-key");
   if (propBlockKeys?.length) {
@@ -278,13 +452,14 @@ const hidePageProps = () => {
       const propKey = propBlockKeys[i].textContent;
       if (propKey) {
         if (pluginPageProps.includes(propKey)) {
-          propBlockKeys[i].parentElement!.parentElement!.style.display = "none";
+          propBlockKeys[i].parentElement!.parentElement!.style.display = hidePluginProps ? "none" : "block" ;
         }
       }
     }
   }
 }
 
+// Get page type
 const getPageType = () => {
   isPage = false;
   isHome = false;
@@ -317,10 +492,12 @@ const getPageAssetsData = async (currentPageData: any): Promise<AssetData> => {
   }
 
   // common page?
+  console.debug(`#${pluginId}: Trying page props`);
   currentPageProps = currentPageData.properties;
   if (currentPageProps) {
-    console.debug(`#${pluginId}: Use page props`);
-    pageAssetsData = { ...defaultConfig.page, ...currentPageProps }
+    // get custom config, override it with high proirity page props
+    const customAssetData = getCustomAssetData(currentPageProps);
+    pageAssetsData = { ...defaultConfig.page, ...customAssetData, ...currentPageProps }
   } else {
     console.debug(`#${pluginId}: Default page`);
     pageAssetsData = { ...defaultConfig.page };
@@ -330,6 +507,7 @@ const getPageAssetsData = async (currentPageData: any): Promise<AssetData> => {
   if (currentPageData.name) {
     let name = currentPageData.name.replaceAll(/[\])}[{(]/g, "").replaceAll("/", "-")
 
+    // TODO: my personal setup: review it when merging to main repo
     const skipSuffix = " — "
     if (name.includes(skipSuffix)) {
       name = name.split(skipSuffix).slice(1).join(skipSuffix)
@@ -338,20 +516,17 @@ const getPageAssetsData = async (currentPageData: any): Promise<AssetData> => {
     pageAssetsData.title = (name
       .split(" ")
       .filter((x: string) => x.length > 3)
-
       .slice(0, 3)
       .join("-")
     );
   }
 
-  console.debug(`#${pluginId}: pageAssetsData -- `, pageAssetsData);
-
+  console.debug(`#${pluginId}:`, {pageAssetsData});
   return pageAssetsData;
 }
 
 const getPageData = async (): Promise<any> => {
   let currentPageData = null;
-
   currentPageData = await logseq.Editor.getCurrentPage();
   if (currentPageData) {
     // Check if page is a child and get parent ID
@@ -362,6 +537,23 @@ const getPageData = async (): Promise<any> => {
     }
   }
   return currentPageData;
+}
+
+// Read custom defaults config
+const getCustomAssetData = (currentPageProps: any) => {
+  console.info(`#${pluginId}: Trying custom JSON settings`);
+  let customAssetData = {};
+  for (const key of Object.keys(customPropsConfig)) {
+    const pageCustomProp = currentPageProps?.[key];
+    if (pageCustomProp) {
+      const pageCustomPropValue = Array.isArray(pageCustomProp) ? pageCustomProp[0] : pageCustomProp;
+      if (pageCustomPropValue) {
+        //@ts-expect-error
+        customAssetData = customPropsConfig?.[key]?.[pageCustomPropValue];
+      }
+    }
+  }
+  return customAssetData;
 }
 
 const cleanBannerURL = (url: string) => {
@@ -376,18 +568,22 @@ const cleanBannerURL = (url: string) => {
   return url;
 }
 
-const renderBanner = async (pageAssetsData: AssetData, currentPageData: any): Promise<boolean> => {
-  if (!pageAssetsData.banner) {
-    hideBanner();  // clear old banner
+// Render banner
+const renderImage = async (pageAssetsData: AssetData, currentPageData: any): Promise<boolean> => {
+  if (pageAssetsData.banner) {
+    // Set banner CSS variable
+    body.classList.add("is-banner-active");
+    root.style.setProperty("--bannerHeight", `${pageAssetsData.bannerHeight}`);
+    root.style.setProperty("--bannerAlign", `${pageAssetsData.bannerAlign}`);
+
+    pageAssetsData.banner = cleanBannerURL(pageAssetsData.banner);
+
+    root.style.setProperty("--pageBanner", `url(${pageAssetsData.banner})`);
+  } else {
+    // clear old banner
+    clearBanner();
     return false;
   }
-
-  // Set banner CSS variable
-  body.classList.add("is-banner-active");
-  root.style.setProperty("--bannerHeight", `${pageAssetsData.bannerHeight}`);
-  root.style.setProperty("--bannerAlign", `${pageAssetsData.bannerAlign}`);
-
-  pageAssetsData.banner = cleanBannerURL(pageAssetsData.banner);
 
   if (currentPageData && currentPageData.properties && !currentPageData.properties["banner"]) {
     if (autoPageBanner && pageAssetsData.title) {
@@ -429,11 +625,32 @@ const getImagebyURL = async (url: string) => {
   }
 }
 
-const hideBanner = () => {
+const renderIcon = async (pageAssetsData: AssetData) => {
+  const pageIcon = pageAssetsData.icon || pageAssetsData.pageIcon;
+  if (pageIcon) {
+    // Set icon CSS variable
+    body.classList.add("is-icon-active");
+    root.style.setProperty("--iconWidth", `${pageAssetsData.iconWidth}`);
+    root.style.setProperty("--pageIcon", `"${pageIcon}"`);
+  } else {
+    // clear old icon
+    clearIcon();
+  }
+}
+
+// Hide banner element
+const clearBanner = () => {
   body.classList.remove("is-banner-active");
   root.style.setProperty("--pageBanner", "");
   root.style.setProperty("--bannerHeight", "");
   root.style.setProperty("--bannerAlign", "");
+}
+
+// Hide icon element
+const clearIcon = () => {
+  body.classList.remove("is-icon-active");
+  root.style.setProperty("--pageIcon", "");
+  root.style.setProperty("--iconWidth", "");
 }
 
 // Page props was edited
@@ -473,8 +690,45 @@ const propsChangedObserverStop = () => {
   propsChangedObserver.disconnect();
 }
 
+// Page changed
+const routeChangedCallback = () => {
+  console.debug(`#${pluginId}: page route changed`);
+  // Content reloaded, so need reconnect props listeners
+  propsChangedObserverStop();
+  // Rerender banner
+  render();
+  setTimeout(() => {
+    propsChangedObserverRun();
+  }, 200)
+}
 
-const renderWidgetsPlaceholder = () => {
+const onSettingsChangedCallback = () => {
+  readPluginSettings();
+  setGlobalCSSVars();
+  toggleFeatures();
+  render();
+}
+
+// Color mode changed
+const onThemeModeChangedCallback = () => {
+  setTimeout(() => {
+    setWidgetPrimaryColors();
+  }, 300)
+}
+
+const onCurrentGraphChangedCallback = async () => {
+  currentGraph = (await logseq.App.getCurrentGraph());
+}
+
+const onPluginUnloadCallback = () => {
+  // clean up
+  top!.document.getElementById("banner")?.remove();
+  body.classList.remove("is-banner-active");
+  body.classList.remove("is-icon-active");
+}
+
+const renderPlaceholder = () => {
+  // Widgets area
   if (!doc.getElementById("banner")) {
     const container = doc.getElementById("main-content-container");
     if (container) {
@@ -490,23 +744,24 @@ const renderWidgetsPlaceholder = () => {
   }
 }
 
-const showWidgetsPlaceholder = () => {
+const showPlaceholder = () => {
   doc.getElementById("banner")!.style.display = "block";
 }
 
-const hideWidgetsPlaceholder = () => {
+const hidePlaceholder = () => {
   doc.getElementById("banner")!.style.display = "none";
 }
 
 const renderWidgets = async () => {
   const isWidgetCalendarRendered = renderWidgetCalendar();
-  if (isWidgetCalendarRendered) {
+  const isWidgetWeatherRendered = await renderWidgetWeather();
+  if (isWidgetCalendarRendered || isWidgetWeatherRendered) {
     doc.getElementById("banner-widgets")?.classList.add("banner-widgets-bg");
   } else {
     doc.getElementById("banner-widgets")?.classList.remove("banner-widgets-bg");
   }
-
   renderWidgetQuote();
+  renderWidgetsCustom();
 }
 
 const renderWidgetCalendar = () => {
@@ -519,6 +774,43 @@ const renderWidgetCalendar = () => {
   return true;
 }
 
+const renderWidgetWeather = async () => {
+  const bannerWidgetsWeather = doc.getElementById("banner-widgets-weather");
+  if (widgetsConfig.weather.enabled === "off" || (widgetsConfig.weather.enabled === "journals" && !(isHome || isJournal))) {
+    bannerWidgetsWeather?.remove();
+    return false;
+  }
+  if (!bannerWidgetsWeather || isWidgetsWeatherChanged) {
+    bannerWidgetsWeather?.remove();
+    const weatherHTML= await getWeatherHTML()
+    doc.getElementById("banner-widgets")?.insertAdjacentHTML("beforeend", `<div id="banner-widgets-weather">${weatherHTML}</div>`);
+  }
+  return true;
+}
+
+const getWeatherHTML = async () => {
+  const weatherURL = `https://indify.co/widgets/live/weather/${widgetsConfig.weather.id}`;
+  let html = "";
+  let response = await fetch(weatherURL);
+  if (response && response.status === 200) {
+    html = await response.text();
+    if (html) {
+      html = html.replace(/src="/g, 'src="https://indify.co')
+                .replace(/flex-dir/g, "display:flex;flex-dir")
+                .replace(/__...../g, "");
+      var parser = new DOMParser();
+      var weatherDoc = parser.parseFromString(html, 'text/html');
+      weatherDoc.getElementById("weatherTemp")?.remove();
+      html = weatherDoc.querySelector("[class^=weather_container]")?.innerHTML || "";
+    }
+  }
+  else {
+    console.info(`#${pluginId}: HTTP-Error: ${response.status}`);
+  }
+  return html;
+}
+
+// Render random quote widget
 const renderWidgetQuote = async () => {
   if (widgetsConfig.quote.enabled === "off" || (widgetsConfig.quote.enabled === "journals" && !(isHome || isJournal))) {
     doc.getElementById("banner-widgets-quote")?.remove();
@@ -564,24 +856,43 @@ const replaceAsync = async (str: string, regex: RegExp, asyncFn: (match: any, ..
   return str.replace(regex, () => data.shift())
 }
 
-const cleanQuote = (text: string) => {
-  const tag = widgetsConfig.quote.tag.replace('#', '');
+export const cleanQuote = (text: string) => {
+  const tag = widgetsConfig.quote.tag.replace("#", "");
+
+  // User cleanup before
+  let regexps: string[] = additionalSettings?.quoteWidget?.cleanupRegExps_before || [];
+  for (const cleanupRegExp of regexps) {
+    text = text.replaceAll(new RegExp(cleanupRegExp, "g"), "").trim();
+  }
 
   // Delete searched tag
   const regExpTag = new RegExp(`#${tag}\\b`, "gi");
   text = text.replaceAll(regExpTag, "").trim();
 
   // Cleanup
-  for (const cleanupRegexp of widgetsQuoteCleanupRegExps) {
-    text = text.replaceAll(cleanupRegexp, "").trim();
+  for (const cleanupRegExp of widgetsQuoteCleanupRegExps) {
+    text = text.replaceAll(cleanupRegExp, "").trim()
   }
 
-  // Add Markdown bold & italic to HTML
+  // Add Markdown bold, italics, strikethrough, highlight & code to HTML
   text = text.replaceAll(/\*\*(.*?)\*\*/g, "<b>$1</b>").replaceAll(/__(.*?)__/g, "<b>$1</b>");
   text = text.replaceAll(/\*(.*?)\*/g, "<i>$1</i>").replaceAll(/_(.*?)_/g, "<i>$1</i>");
+  text = text.replaceAll(/==(.*?)==/g, "<mark>$1</mark>").replaceAll(/\^\^(.*?)\^\^/g, "<mark>$1</mark>");
+  text = text.replaceAll(/~~(.*?)~~/g, "<s>$1</s>");
+  text = text.replaceAll(/`(.*?)`/g, "<code>$1</code>");
+
+  // Clear Markdown links & wiki-links
+  text = text.replaceAll(/\[\[(.*?)\]\]/g, "$1");
+  text = text.replaceAll(/\[([^\]\n]+)\]\([^\]]+\)/g, "$1");
 
   // Keep lines breaks
   text = text.replaceAll("\n", "<br/>");
+
+  // User cleanup after
+  regexps = additionalSettings?.quoteWidget?.cleanupRegExps_after || [];
+  for (const cleanupRegExp of regexps) {
+    text = text.replaceAll(new RegExp(cleanupRegExp, "g"), "").trim();
+  }
 
   return text;
 }
@@ -627,11 +938,22 @@ const getRandomQuote = async () => {
   );
 
   quoteHTML = cleanQuote(quoteHTML);
-  
+
   const blockId = randomQuoteBlock[1];
   const pageURL = encodeURI(`logseq://graph/${currentGraph?.name}?block-id=${blockId}`);
   quoteHTML = `<a href=${pageURL} id="banner-widgets-quote-link">${quoteHTML}</a>`;
   return quoteHTML;
+}
+
+const renderWidgetsCustom = async () => {
+  const bannerWidgetsCustom = doc.getElementById("banner-widgets-custom");
+  if (widgetsConfig.custom.enabled === "off" || (widgetsConfig.custom.enabled === "journals" && !(isHome || isJournal))) {
+    bannerWidgetsCustom?.remove();
+    return;
+  }
+  if (!bannerWidgetsCustom || isWidgetsCustomCodeChanged) {
+    doc.getElementById("banner-widgets")?.insertAdjacentHTML("beforeend", `<div id="banner-widgets-custom">${widgetsConfig.custom.code}</div>`);
+  }
 }
 
 const setWidgetsCSSVars = () => {
@@ -645,7 +967,8 @@ const render = async () => {
   getPageType();
 
   if (!(isHome || isPage)) {
-    hideBanner();
+    clearBanner();
+    clearIcon();
     return;
   }
 
@@ -657,14 +980,16 @@ const render = async () => {
   pageAssetsData = await getPageAssetsData(currentPageData);
   if (pageAssetsData) {
     if (!pageAssetsData.banner || pageAssetsData.banner === "false" || pageAssetsData.banner === "off" || pageAssetsData.banner === "none" || pageAssetsData.banner === '""'  || pageAssetsData.banner === "''") {
-      hideBanner();
+      clearBanner();
+      clearIcon();
       return;
     }
 
     const isBannerRendered = await renderBanner(pageAssetsData, currentPageData);
     if (isBannerRendered) {
+      renderIcon(pageAssetsData);
       renderWidgets();
-      showWidgetsPlaceholder();
+      showPlaceholder();
     }
   }
 }
@@ -703,14 +1028,14 @@ const main = async () => {
   root = doc.documentElement;
   body = doc.body;
 
-  logseq.provideStyle(mainStyles);
+  initStyles();
 
-  renderWidgetsPlaceholder();
-  hideWidgetsPlaceholder();
+  renderPlaceholder();
+  hidePlaceholder();
 
   setTimeout(() => {
     readPluginSettings();
-    setWidgetsCSSVars();
+    setGlobalCSSVars();
     render();
   }, 500)
 
@@ -729,49 +1054,33 @@ const main = async () => {
     // Listen for page props
     propsChangedObserverRun();
 
-
+    // Listen for pages switch
     logseq.App.onRouteChanged( async () => {
-      console.debug(`#${pluginId}: page route changed`);
-
-      // Content reloaded, so need reconnect props listeners
-      propsChangedObserverStop();
-
-      // Rerender banner
-      render();
-
-      setTimeout(() => {
-        propsChangedObserverRun();
-      }, 200)
+      routeChangedCallback();
     })
 
-
+    // Listen settings update
     logseq.onSettingsChanged(() => {
-      readPluginSettings();
-      setWidgetsCSSVars();
-      render();
+      onSettingsChangedCallback();
     })
 
-
+    // Listen for theme mode changed
     logseq.App.onThemeModeChanged( () => {
-      setTimeout(() => {
-        setWidgetPrimaryColors();
-      }, 300)
+      onThemeModeChangedCallback();
     })
 
-
-    logseq.App.onCurrentGraphChanged( async () => {
-      currentGraph = (await logseq.App.getCurrentGraph());
+    // Listen for grapth changed
+    logseq.App.onCurrentGraphChanged( () => {
+      onCurrentGraphChangedCallback();
     })
-
 
     // Listen plugin unload
     logseq.beforeunload( async () => {
-      top!.document.getElementById("banner")?.remove();
-      body.classList.remove("is-banner-active");
-      body.classList.remove("is-icon-active");
+      onPluginUnloadCallback();
     })
-
   }, 2000);
 }
 
-logseq.ready(main).catch(console.error);
+export const App = (logseq: any) => {
+  logseq?.ready(main).catch(console.error);
+}

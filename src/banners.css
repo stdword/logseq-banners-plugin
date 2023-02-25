@@ -154,7 +154,6 @@ body:is([data-page="page"], [data-page="home"], [data-page="all-journals"]).is-b
     font-size: calc(var(--widgetsQuoteFS) * 0.8);
     text-align: right;
     border-radius: 6px;
-    text-shadow: 1px 1px 0px rgba(var(--widgetsBgColor), 0.8);
     background-color: rgba(var(--widgetsBgColor), 0.7);
 }
 @media (min-width: 1024px) {

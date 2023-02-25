@@ -1,3 +1,17 @@
+## [3.4.10](https://github.com/yoyurec/logseq-banners-plugin/compare/v3.4.9...v3.4.10) (2023-02-19)
+
+
+### Bug Fixes
+
+* **quotes:** bump for previos PR ([73f20d5](https://github.com/yoyurec/logseq-banners-plugin/commit/73f20d50a1f9ac326fe0167b33e79a4acbd5d28e))
+
+## [3.4.9](https://github.com/yoyurec/logseq-banners-plugin/compare/v3.4.8...v3.4.9) (2023-02-16)
+
+
+### Bug Fixes
+
+* **bump:** deps update ([877b5d3](https://github.com/yoyurec/logseq-banners-plugin/commit/877b5d3d35e1ee15ad1962f181fd73f2086b5dd4))
+
 ## [3.4.8](https://github.com/yoyurec/logseq-banners-plugin/compare/v3.4.7...v3.4.8) (2023-01-19)
 
 
