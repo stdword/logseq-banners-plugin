@@ -1,7 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Fira+Sans+Condensed:wght@500&display=swap");
 
 
-/* Comomon layout */
+/* Common layout */
 #main-content-container {
     display: block;
 }
@@ -73,31 +73,29 @@ body:is([data-page="page"], [data-page="home"], [data-page="all-journals"]).is-b
 #banner-widgets-calendar {
     position: absolute;
     top: 0;
-    left: 2px;
+    left: 0px;
     transform: scale(0.9) translate(-5%, -5%);
 }
 #banner-widgets-calendar .logseq-block-calendar {
+    margin-left: 3px;
     width: var(--widgetsCalendarWidth);
+    min-width: var(--widgetsCalendarWidth);
     overflow: hidden;
+
     color: rgb(var(--widgetsTextColor));
     background-color: transparent;
+
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
      "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
     text-shadow: 1px 1px 0px rgba(var(--widgetsBgColor), 0.8);
     font-weight: bold;
 }
-/* #banner-widgets-calendar .calendar-title {
-} */
 #banner-widgets-calendar .calendar-month {
-    padding-left: 8px;
+    padding-left: 4px;
 }
 #banner-widgets-calendar .calendar-nav {
-    padding: 0 8px 0 0;
+    padding: 0 0px 0 0;
 }
-/* #banner-widgets-calendar .calendar-nav a {
-}
-#banner-widgets-calendar .calendar-head {
-} */
 #banner-widgets-calendar .logseq-block-calendar th {
     border: 0;
 }
