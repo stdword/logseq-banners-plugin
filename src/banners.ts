@@ -996,19 +996,20 @@ const render = async () => {
 
 const commandSaveBanner = async () => {
   const currentPage = await getPageData();
+  const properties = currentPage.properties ?? {};
 
   const currentBanner = lastBannerURL;
-  const pageBanner = currentPage.properties["banner"];
+  const pageBanner = properties["banner"];
   if (pageBanner && pageBanner !== currentBanner) {
     logseq.UI.showMsg(
-      'There is the "banner" propery in this page with a different value. Remove it manually and run this command again.',
+      'There is the "banner" property in this page with a different value. Remove it manually and run this command again.',
       "warning",
       {timeout: 10000},
     );
     return;
   }
 
-  const pageBannerAlign = currentPage.properties["banner-align"];
+  const pageBannerAlign = properties["banner-align"];
   const currentBannerAlign = pageBannerAlign || getComputedStyle(root).getPropertyValue("--bannerAlign");
 
   const [ propertiesBlock ] = await logseq.Editor.getPageBlocksTree(currentPage.name);
