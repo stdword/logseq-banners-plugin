@@ -1,3 +1,23 @@
+# [3.5.0](https://github.com/stdword/logseq-banners-plugin/compare/v3.4.5...v3.5.0) (2023-12-04)
+
+
+### Bug Fixes
+
+* clean data: url & banner for sub pages ([d114043](https://github.com/stdword/logseq-banners-plugin/commit/d114043d81426d2dd9df7c40e3f06667f8f116d4))
+* empty properties on page ([01ffc00](https://github.com/stdword/logseq-banners-plugin/commit/01ffc00faad7313c7b6d6be162ef883ac7329ae2))
+* **optionalError:** release failing ([2e0a5fd](https://github.com/stdword/logseq-banners-plugin/commit/2e0a5fd0e3dcfd1190ee7ffbb8a45bfc8f04d565))
+* **quote:** block link not working ([3270935](https://github.com/stdword/logseq-banners-plugin/commit/32709357ba6df521e0ae395e3faeeccc520cf18c))
+* **release:** trigger release ([ef9fbb3](https://github.com/stdword/logseq-banners-plugin/commit/ef9fbb3b598cbe43b2b865ccc6c0a474a4d9c51b))
+* **settings:** add a command to rebuild regex ([39b17a0](https://github.com/stdword/logseq-banners-plugin/commit/39b17a0770ed0a3bd7679b632df75246d66fce83))
+* when image not found in unsplash api — use default ([45850c3](https://github.com/stdword/logseq-banners-plugin/commit/45850c3fbe4e57c3e581fe3295b1bf353f67dfa5))
+
+
+### Features
+
+* add numbers values min-max and suffix checking ([f5ef0bd](https://github.com/stdword/logseq-banners-plugin/commit/f5ef0bda49fbbce6e6323be1c97a8fd9d5559249))
+* auto prepand ../assets prefix for banner urls ([c3e2076](https://github.com/stdword/logseq-banners-plugin/commit/c3e2076f3371434c662417ee353c1c2baa3a90ea))
+* notification on wrong save banner command call ([e764003](https://github.com/stdword/logseq-banners-plugin/commit/e764003e31b6fdcd58df88fae913815d02bf3894))
+
 ## [3.4.10](https://github.com/yoyurec/logseq-banners-plugin/compare/v3.4.9...v3.4.10) (2023-02-19)
 
 
