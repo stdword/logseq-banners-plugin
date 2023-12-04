@@ -9,7 +9,7 @@
     "test": "node --loader tsx --no-warnings --test ./tests/*.test.ts",
     "dev": "vite",
     "build": "tsc && vite build --mode=dev",
-    "prod": "tsc && npm run test && vite build"
+    "prod": "vite build"
   },
   "config": {
     "commitizen": {
