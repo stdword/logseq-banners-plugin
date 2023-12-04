@@ -520,12 +520,14 @@ function cleanBannerURL(url: string) {
   // remove surrounding quotations if present
   url = url.replace(/^"(.*)"$/, '$1');
 
-  // if local image from assets folder
-  if (url.startsWith("../")) {
-    url = encodeURI("file://" + currentGraph?.path + url.replace("..", ""));
-  }
+  if (url.startsWith("http://") || url.startsWith("https://"))
+    return url;
 
-  return url;
+  // local image from assets folder
+  if (!url.startsWith("../assets/"))
+    url = "../assets/" + url
+
+  return encodeURI("file://" + currentGraph?.path + url.replace("..", ""));
 }
 
 async function _renderBanner(pageAssetsData: AssetData, currentPageData: any): Promise<boolean> {
