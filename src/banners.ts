@@ -29,10 +29,15 @@ let additionalSettings: any;
 
 let lastBannerURL: string;
 let autoPageBanner: boolean;
+let autoPageBannerSkipPrefixSeparator: string;
 const autoPageBannerURLPattern = "https://source.unsplash.com/1200x${height}?${title}";
 const pluginPageProps: Array<string> = ["banner", "banner-align"];
 
-
+const defaultCalendarWidth = 282
+const defaultBannerHeight = 220
+const defaultBannerAlign = 50
+const defaultQuoteMaxWidth = 48
+const defaultQuoteSize = 80
 
 export const widgetsQuoteCleanupRegExps: RegExp[] = [
   /* order is important here */
@@ -353,7 +358,27 @@ export function readPluginSettings() {
     } = logseq.settings);
   }
 
+  for (const [ container, key, defaultValue, suffix, minValue, maxValue ] of [
+    [widgetsConfig.calendar, 'width', defaultCalendarWidth, 'px', defaultCalendarWidth],
+    [defaultConfig.page, 'bannerHeight', defaultBannerHeight, 'px', defaultBannerHeight],
+    [defaultConfig.journal, 'bannerHeight', defaultBannerHeight, 'px', defaultBannerHeight],
+    [defaultConfig.page, 'bannerAlign', defaultBannerAlign, '%', 0, 100],
+    [defaultConfig.journal, 'bannerAlign', defaultBannerAlign, '%', 0, 100],
+    [widgetsConfig.quote, 'maxwidth', defaultQuoteMaxWidth, 'ch', 0],
+    [widgetsConfig.quote, 'size', defaultQuoteSize, '%', 20],
+  ]) {
+    container[key] ||= defaultValue.toString()
+    if (container[key].endsWith(suffix))
+      container[key] = container[key].slice(0, -suffix.length)
+
+    let value = Number(container[key]) || defaultValue
+    value = Math.max(minValue, value)
+    if (maxValue)
+      value = Math.min(maxValue, value)
+    container[key] = `${value}${suffix}`
   }
+
+  cacheDefaultBanners();
 }
 
 async function getBase64FromImageUrl(url: string): Promise<string> {
@@ -461,7 +486,7 @@ async function getPageAssetsData(currentPageData: any): Promise<AssetData> {
     let name = currentPageData.name.replaceAll(/[\])}[{(]/g, "").replaceAll("/", "-")
 
     // TODO: my personal setup: review it when merging to main repo
-    const skipSuffix = " — "
+    const skipSuffix = autoPageBannerSkipPrefixSeparator
     if (name.includes(skipSuffix)) {
       name = name.split(skipSuffix).slice(1).join(skipSuffix)
     }
