@@ -871,6 +871,15 @@ async function renderBanner() {
 
 async function commandSaveBanner() {
   const currentPage = await getPageData();
+  if (!currentPage) {
+    logseq.UI.showMsg(
+      'There is no page to save banner to. Open any page before next run.',
+      "warning",
+      {timeout: 10000},
+    );
+    return;
+  }
+
   const properties = currentPage.properties ?? {};
 
   const currentBanner = lastBannerURL;
