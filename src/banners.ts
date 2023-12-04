@@ -143,7 +143,7 @@ const settingsArray: SettingSchemaDesc[] = [
   {
     key: "widgetsCalendarEnabled",
     title: "Show calendar?",
-    description: "❗️Setup instructions:<br> https://github.com/stdword/logseq-banners-plugin/tree/main#calendar",
+    description: "❗️Setup instructions:<br> https://github.com/stdword/logseq-banners-plugin/tree/main#calendar-widget-setup",
     type: "enum",
     enumPicker: "radio",
     enumChoices: ["off", "journals", "everywhere"],
