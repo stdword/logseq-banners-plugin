@@ -1,90 +1,45 @@
-### If you ❤ what i'm doing - you can support my work! ☕
-<a href="https://www.buymeacoffee.com/yoyurec" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 50px !important;width: 178px !important;" ></a>
+## Logseq Banners plugin — fork by [@stdword](https://github.com/stdword)
+Enliven your Logseq Workspace with gorgeous, custom, Notion style page banners
 
-## Logseq Banners plugin
-Enliven your Logseq Workspace with gorgeous, custom, Notion style page banners and icons
-![](screenshots/main.png)
+<img width="1177" src="https://github.com/stdword/logseq-banners-plugin/assets/1984175/e7fe67fc-36cf-45d2-92e6-d07f3fe145c7">
+<img width="1181" src="https://github.com/stdword/logseq-banners-plugin/assets/1984175/6e7a39ef-e280-4f30-b776-e6d86b217c0f">
 
 ## Features
-* You can set image & icon via plugin settings or via page props
-* Hide plugin related page props for more clean view
-* Banners and icons default sizes
-* Banners and icons default vertical align
-* Separate settings for journals and common pages
-* Preconfigured widgets:
-    * 📅 Calendar (via "Block calendar") plugin support
-    * 🌤 Weather
-    * 🍅 Pomodoro
-    * 💬 Random quote
-* Options for widgets `off / journals / everywhere`
-* Separate settings for each widget
+* Set banner image via page props
+* Automatically find banner image based on page name
+* 📅 Calendar widget (via `Block calendar` plugin)
+* 💬 Random quote widget
 
-## Instructions
-* Install the plugin from the Logseq plugin marketplace
-* Configure a default images and icons in "Settings -> Plugin Settings -> Banners"
-* Customize the banner image on special page via the page props:
-    * `banner:: https://wallpaperaccess.com/full/1146672.jpg`
-* Local assets supported also:
-    * add image in Logseq note and just copy it's path to props 🎉
-    * for ex. `banner:: ../assets/image_1656373162335_0.png`
-* To avoid Logseq show banner preview in props area - wrap it with doublequotes!
-    * `banner:: "http://........"`
-* To disable default banner - just delete URL from settings
-* To hide banner image on some pages use:
-    * `banner:: false`
-*  Sometimes important banner parts cropped on default vertical align "50%" (center), so you can do fine tune with page props:
+## Installation
+1. Enable «Developer mode» in «...» → Settings → Advanced
+2. Download the latest plugin release in a raw .zip archive from [here](https://github.com/stdword/logseq-banners-plugin/releases/latest) and unzip it
+3. Go to the «...» → Plugins, click «Load unpacked plugin» and point to the unzipped plugin
+⚠️ The important point here is: every new plugin release should be updated manually
+
+## Configuration
+* Configure a default banners' images and icons in "Settings → Plugins → Banners"
+* Customize the banner image on certain page via the page props:
+    * via any URL:
+       * `banner:: https://wallpaperaccess.com/full/1146672.jpg`
+       * `banner:: "https://wallpaperaccess.com/full/1146672.jpg"` — wrap with doublequotes to avoid Logseq url preview
+    * via Unsplash API:
+       * `banner:: https://source.unsplash.com/featured/1600x900` — random featured
+       * `banner:: https://source.unsplash.com/1600x900/daily` — photo of the day
+       * `banner:: https://source.unsplash.com/featured/1600x900?diary,coffee`
+    * via local assets (just insert an image to Logseq):
+       * `banner:: ../assets/image_1656373162335_0.png`
+       * `banner:: image_1656373162335_0.png`
+    * To hide banner image on certain pages use:
+       * `banner:: false`
+* Customize banner alignment to see the cropped part (default: 50%):
     * top: `banner-align:: 0%`
     * bottom: `banner-align:: 100%`
-* Customize the page icon on a per page basis via the page props:
-    * `page-icon:: 💸`
-    * or use native Logseq `icon:: 💸`
-* To disable default icon - just delete emoji from settings
 
-## Customizations
-* All customizations (a lot!) can be done from plugin settings ("Settings -> Plugin Settings -> Banners") in nice grouped blocks:
-* Example for advanced settings (JSON) for custom page types: "Settings -> Plugin Settings -> Banners -> Advanced settings -> Advanced custom pages banners and icons config -> Edit settings.json"
-
-## Widgets
-![](screenshots/widgets-light-01.png)
-![](screenshots/widgets-dark-01.png)
-
-### Calendar
-* Install "Block calendar" plugin from Logseq Marketplace
-* Go to installed plugin settings ""Settings -> Plugin Settings -> Block calendar"
+### Calendar widget setup
+* Install "Block Calendar" plugin from Logseq Marketplace
+* Go to installed plugin settings "Settings → Plugins → Block Calendar"
 * Set "Always render" to `#banner-widgets-calendar` banner placeholder
-* ![](screenshots/block-calendar-settings.png)
-
-### Weather
-* Go to [Indify – Notion Widgets](https://indify.co), Sign Up
-* Choose "Weather widget", set your city
-* Set "Number of days" - 2
-* ⚠ Copy YOUR personal widget ID and replace default in plugin Settings!
-
-### Random quote
-* Set your `#tag` in plugin Settings
-
-### Custom HTML (iframes, etc...)! (you can set your own, here is some pre-configured):
-* Pomo-focus (from https://pomofocus.io/app)
-
-For more tune use your own `custom.css` to position widgets iframes inside of banner area via CSS `position:absolute` & `top/right/bottom/left`.
-
-## Unsplash API tips
-
-* You can use them as default page/journal banner:
-    * Random featured: `https://source.unsplash.com/featured/1600x900`
-    * Photo of the day: `https://source.unsplash.com/1600x900/daily`
-    * Search terms. Add comma separated terms after `?` at the end (for default settings or in props at specific page): `https://source.unsplash.com/1600x900?red,house`
-
-For ex. "Default journal banner" - `https://source.unsplash.com/featured/1600x900?diary`
-
-## What is Logseq?
-Logseq is a privacy-first, open-source knowledge base. Visit https://logseq.com for more information.
-
-## Support
-* Read about Logseq plugin updates on Dicscord - https://discord.com/channels/725182569297215569/896368413243494430
-* Ask about Logseq plugins on Dicscord - https://discord.com/channels/725182569297215569/752845167030960141
-* If you have any questions, issues or feature request, use the issue submission on GitHub: https://github.com/yoyurec/logseq-banners-plugin/issues
+![CleanShot 2023-12-04 at 04 22 11@2x](https://github.com/stdword/logseq-banners-plugin/assets/1984175/500934c7-ea08-472a-a7ed-4161a73ab9ae)
 
 ## Credits
-- This plugin was originally created by [@sawhney17](https://github.com/sawhney17) (buy him a coffee also! https://www.buymeacoffee.com/sawhney17 ☕)
-- Currently maintaned and extended by me - [@yoyurec](https://github.com/yoyurec)
+- This plugin was originally created by [@sawhney17](https://github.com/sawhney17) and extended by [@yoyurec](https://github.com/yoyurec)
