@@ -1,33 +1,14 @@
-import { SettingSchemaDesc, AppGraphInfo } from "@logseq/libs/dist/LSPlugin.user";
+import { SettingSchemaDesc, AppGraphInfo, PageEntity } from "@logseq/libs/dist/LSPlugin.user";
 
-import mainStyles from "./banners.css";
+import mainStyles from "./banners.css?inline";
 import { logseq as PL } from "../package.json";
 
-
-type AssetDataList = {
-  [prop: string]: AssetData;
-}
 
 type AssetData = {
   title?: string;
   banner?: string;
   bannerHeight?: string;
   bannerAlign?: string;
-  pageIcon?: string;
-  iconWidth?: string;
-  icon?: string;
-}
-
-enum AssetType {
-  banner = "banner",
-  pageIcon = "pageIcon"
-}
-
-type WidgetsConfig = {
-  calendar?: any;
-  weather?: any;
-  quote?: any;
-  custom?: any;
 }
 
 const pluginId = PL.id;
@@ -41,24 +22,16 @@ let isHome: boolean;
 let isPage: boolean;
 
 let currentGraph: AppGraphInfo | null;
-let defaultConfig: AssetDataList;
-let customPropsConfig: AssetDataList;
-let widgetsConfig: WidgetsConfig;
-let oldWidgetsConfig: WidgetsConfig;
-let isWidgetsCustomCodeChanged: boolean;
-let isWidgetsWeatherChanged: boolean;
+let defaultConfig: {page: AssetData, journal: AssetData};
+let widgetsConfig: { calendar?: any, quote?: any };
 let hidePluginProps: boolean;
 let additionalSettings: any;
 
 let lastBannerURL: string;
 let autoPageBanner: boolean;
 const autoPageBannerURLPattern = "https://source.unsplash.com/1200x${height}?${title}";
+const pluginPageProps: Array<string> = ["banner", "banner-align"];
 
-const pluginPageProps: Array<string> = ["banner", "banner-align","page-icon", "icon"];
-
-const settingsDefaultPageBanner = "https://wallpaperaccess.com/full/1146672.jpg";
-const settingsDefaultJournalBanner = "https://images.unsplash.com/photo-1646026371686-79950ceb6daa?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1034&q=80";
-const settingsWidgetsCustomCode = `<iframe id="banner-widgets-pomo" src="https://pomofocus.io/app"></iframe>`;
 
 
 export const widgetsQuoteCleanupRegExps: RegExp[] = [
@@ -331,24 +304,24 @@ const settingsArray: SettingSchemaDesc[] = [
   }
 ]
 
-const initStyles = () => {
+
+function initStyles() {
   logseq.provideStyle(mainStyles);
 }
 
-const setGlobalCSSVars = () => {
-  setWidgetsCSSVars();
+function setCSSVars() {
+  setTimeout(() => {
+    setWidgetPrimaryColors();
+  }, 500)
+  root.style.setProperty("--widgetsCalendarWidth", widgetsConfig.calendar.width);
 }
 
-export const readPluginSettings = () => {
-  isWidgetsCustomCodeChanged = false;
-  isWidgetsWeatherChanged = false;
-  oldWidgetsConfig = { ...widgetsConfig };
+export function readPluginSettings() {
   widgetsConfig = {
     calendar: {},
-    weather: {},
     quote: {},
-    custom: {}
-  };
+  }
+
   defaultConfig = {
     page: {},
     journal: {}
@@ -357,46 +330,33 @@ export const readPluginSettings = () => {
   if (logseq.settings) {
     ({
       hidePluginProps,
+
       widgetsCalendarEnabled: widgetsConfig.calendar.enabled,
       widgetsCalendarWidth: widgetsConfig.calendar.width,
-      widgetsWeatherEnabled: widgetsConfig.weather.enabled,
-      widgetsWeatherID: widgetsConfig.weather.id,
+
       widgetsQuoteEnabled: widgetsConfig.quote.enabled,
       widgetsQuoteTag: widgetsConfig.quote.tag,
       widgetsQuoteMaxWidth: widgetsConfig.quote.maxwidth,
       widgetsQuoteSize: widgetsConfig.quote.size,
-      widgetsCustomEnabled: widgetsConfig.custom.enabled,
-      widgetsCustomCode: widgetsConfig.custom.code,
+
+      autoPageBanner,
+      autoPageBannerSkipPrefixSeparator,
       defaultPageBanner: defaultConfig.page.banner,
       pageBannerHeight: defaultConfig.page.bannerHeight,
       pageBannerAlign: defaultConfig.page.bannerAlign,
-      defaultPageIcon: defaultConfig.page.pageIcon,
-      pageIconWidth: defaultConfig.page.iconWidth,
+
       defaultJournalBanner: defaultConfig.journal.banner,
       journalBannerHeight: defaultConfig.journal.bannerHeight,
       journalBannerAlign: defaultConfig.journal.bannerAlign,
-      defaultJournalIcon: defaultConfig.journal.pageIcon,
-      journalIconWidth: defaultConfig.journal.iconWidth,
-      autoPageBanner,
-      customPropsConfig,
+
       additional: additionalSettings
     } = logseq.settings);
   }
-  encodeDefaultBanners();
-}
 
-// Toggle features on settings changes
-const toggleFeatures = () => {
-  if (widgetsConfig.custom.code !== oldWidgetsConfig.custom.code) {
-    isWidgetsCustomCodeChanged = true;
-  }
-  if (widgetsConfig.weather.id !== oldWidgetsConfig.weather.id) {
-    isWidgetsWeatherChanged = true;
   }
 }
 
-// Generate Base64 from image URL
-const getBase64FromUrl = async (url: string): Promise<string> => {
+async function getBase64FromImageUrl(url: string): Promise<string> {
   let data;
   try {
     data = await fetch(url);
@@ -414,18 +374,16 @@ const getBase64FromUrl = async (url: string): Promise<string> => {
   });
 }
 
-// Get and encode default banners for caching
-const encodeDefaultBanners = async () => {
-  if (defaultConfig.page.banner && !(defaultConfig.page.banner?.includes("source.unsplash.com"))) {
-    defaultConfig.page.banner = await getBase64FromUrl(cleanBannerURL(defaultConfig.page.banner));
+async function cacheDefaultBanners() {
+  if (defaultConfig.page.banner && !(defaultConfig.page.banner.includes("source.unsplash.com"))) {
+    defaultConfig.page.banner = await getBase64FromImageUrl(cleanBannerURL(defaultConfig.page.banner));
   }
-  if (defaultConfig.journal.banner && !(defaultConfig.journal.banner?.includes("source.unsplash.com"))) {
-    defaultConfig.journal.banner = await getBase64FromUrl(cleanBannerURL(defaultConfig.journal.banner));
+  if (defaultConfig.journal.banner && !(defaultConfig.journal.banner.includes("source.unsplash.com"))) {
+    defaultConfig.journal.banner = await getBase64FromImageUrl(cleanBannerURL(defaultConfig.journal.banner));
   }
 }
 
-// Get RGB from any color space
-const getRGBValues = (color: string) => {
+function getRGBValues(color: string) {
   const canvas = document.createElement('canvas');
   canvas.height = 1;
   canvas.width = 1;
@@ -436,16 +394,14 @@ const getRGBValues = (color: string) => {
   return `${rgbaArray[0]}, ${rgbaArray[1]}, ${rgbaArray[2]}`;
 }
 
-// Primary colors vars
-const setWidgetPrimaryColors = () => {
+function setWidgetPrimaryColors() {
   const primaryTextcolor = getComputedStyle(top!.document.documentElement).getPropertyValue('--ls-primary-text-color').trim();
   root.style.setProperty("--widgetsTextColor", getRGBValues(primaryTextcolor));
   const primaryBgcolor = getComputedStyle(top!.document.documentElement).getPropertyValue('--ls-primary-background-color').trim();
   root.style.setProperty("--widgetsBgColor", getRGBValues(primaryBgcolor));
 }
 
-// Hide page props
-const hidePageProps = () => {
+function hidePageProps() {
   const propBlockKeys = doc.getElementsByClassName("page-property-key");
   if (propBlockKeys?.length) {
     for (let i = 0; i < propBlockKeys.length; i++) {
@@ -459,8 +415,7 @@ const hidePageProps = () => {
   }
 }
 
-// Get page type
-const getPageType = () => {
+function getPageType() {
   isPage = false;
   isHome = false;
   const pageType = body.getAttribute("data-page");
@@ -474,8 +429,8 @@ const getPageType = () => {
   }
 }
 
-const getPageAssetsData = async (currentPageData: any): Promise<AssetData> => {
-  let pageAssetsData = { ...defaultConfig.journal };
+async function getPageAssetsData(currentPageData: any): Promise<AssetData> {
+  let pageAssetsData = { ...defaultConfig.journal } as AssetData;
   let currentPageProps: any = {};
 
   // home = journal page?
@@ -495,9 +450,7 @@ const getPageAssetsData = async (currentPageData: any): Promise<AssetData> => {
   console.debug(`#${pluginId}: Trying page props`);
   currentPageProps = currentPageData.properties;
   if (currentPageProps) {
-    // get custom config, override it with high proirity page props
-    const customAssetData = getCustomAssetData(currentPageProps);
-    pageAssetsData = { ...defaultConfig.page, ...customAssetData, ...currentPageProps }
+    pageAssetsData = { ...defaultConfig.page, ...currentPageProps }
   } else {
     console.debug(`#${pluginId}: Default page`);
     pageAssetsData = { ...defaultConfig.page };
@@ -525,38 +478,20 @@ const getPageAssetsData = async (currentPageData: any): Promise<AssetData> => {
   return pageAssetsData;
 }
 
-const getPageData = async (): Promise<any> => {
-  let currentPageData = null;
-  currentPageData = await logseq.Editor.getCurrentPage();
-  if (currentPageData) {
-    // Check if page is a child and get parent ID
-    const currentPageId = currentPageData.page?.id;
-    if (currentPageId) {
-      currentPageData = null;
-      currentPageData = await logseq.Editor.getPage(currentPageId);
-    }
-  }
-  return currentPageData;
+async function getPageData(): Promise<PageEntity | null> {
+  let currentPageData = await logseq.Editor.getCurrentPage();
+  if (!currentPageData)
+    return null;
+
+  // Check if it is a child and get parent ID
+  const currentPageId = currentPageData.page?.id;
+  if (currentPageId)
+    currentPageData = await logseq.Editor.getPage(currentPageId);
+
+  return currentPageData as PageEntity;
 }
 
-// Read custom defaults config
-const getCustomAssetData = (currentPageProps: any) => {
-  console.info(`#${pluginId}: Trying custom JSON settings`);
-  let customAssetData = {};
-  for (const key of Object.keys(customPropsConfig)) {
-    const pageCustomProp = currentPageProps?.[key];
-    if (pageCustomProp) {
-      const pageCustomPropValue = Array.isArray(pageCustomProp) ? pageCustomProp[0] : pageCustomProp;
-      if (pageCustomPropValue) {
-        //@ts-expect-error
-        customAssetData = customPropsConfig?.[key]?.[pageCustomPropValue];
-      }
-    }
-  }
-  return customAssetData;
-}
-
-const cleanBannerURL = (url: string) => {
+function cleanBannerURL(url: string) {
   // remove surrounding quotations if present
   url = url.replace(/^"(.*)"$/, '$1');
 
@@ -568,8 +503,7 @@ const cleanBannerURL = (url: string) => {
   return url;
 }
 
-// Render banner
-const renderImage = async (pageAssetsData: AssetData, currentPageData: any): Promise<boolean> => {
+async function _renderBanner(pageAssetsData: AssetData, currentPageData: any): Promise<boolean> {
   if (pageAssetsData.banner) {
     // Set banner CSS variable
     body.classList.add("is-banner-active");
@@ -589,7 +523,7 @@ const renderImage = async (pageAssetsData: AssetData, currentPageData: any): Pro
     if (autoPageBanner && pageAssetsData.title) {
       const defaultHeight = settingsArray.find(item => {return item.key == "pageBannerHeight"})!.default as string;
       const height = (pageAssetsData.bannerHeight || defaultHeight).replace("px", "");
-      
+
       pageAssetsData.banner = (autoPageBannerURLPattern
         .replace("${height}", height)
         .replace("${title}", pageAssetsData.title)
@@ -609,7 +543,7 @@ const renderImage = async (pageAssetsData: AssetData, currentPageData: any): Pro
   return true;
 }
 
-const getImagebyURL = async (url: string) => {
+async function getImagebyURL(url: string) {
   let response = await fetch(url)
   if (response.status === 200) {
     if (response.url.includes("source-404")) {
@@ -625,39 +559,18 @@ const getImagebyURL = async (url: string) => {
   }
 }
 
-const renderIcon = async (pageAssetsData: AssetData) => {
-  const pageIcon = pageAssetsData.icon || pageAssetsData.pageIcon;
-  if (pageIcon) {
-    // Set icon CSS variable
-    body.classList.add("is-icon-active");
-    root.style.setProperty("--iconWidth", `${pageAssetsData.iconWidth}`);
-    root.style.setProperty("--pageIcon", `"${pageIcon}"`);
-  } else {
-    // clear old icon
-    clearIcon();
-  }
-}
-
-// Hide banner element
-const clearBanner = () => {
+function clearBanner() {
   body.classList.remove("is-banner-active");
   root.style.setProperty("--pageBanner", "");
   root.style.setProperty("--bannerHeight", "");
   root.style.setProperty("--bannerAlign", "");
 }
 
-// Hide icon element
-const clearIcon = () => {
-  body.classList.remove("is-icon-active");
-  root.style.setProperty("--pageIcon", "");
-  root.style.setProperty("--iconWidth", "");
-}
-
 // Page props was edited
 let propsChangedObserverConfig: MutationObserverInit;
 let propsChangedObserver: MutationObserver;
 
-const propsChangedObserverInit = () => {
+function propsChangedObserverInit() {
   propsChangedObserverConfig = {
     attributes: true,
     attributeFilter: ["class"],
@@ -668,66 +581,65 @@ const propsChangedObserverInit = () => {
     for (let i = 0; i < mutationsList.length; i++) {
       if (mutationsList[i].oldValue?.includes("pre-block")){
         console.info(`#${pluginId}: page props - deleted`);
-        render();
+        renderBanner();
         return;
       }
       //@ts-expect-error
       if (mutationsList[i]?.target?.offsetParent?.classList.contains("pre-block") && mutationsList[i].oldValue === "editor-wrapper"){
         console.info(`#${pluginId}: page props - edited or added`);
-        render();
+        renderBanner();
       }
     }
   }
   propsChangedObserver = new MutationObserver(propsChangedCallback);
 }
-const propsChangedObserverRun = () => {
+function propsChangedObserverRun() {
   const preBlock = doc.getElementsByClassName("content")[0]?.firstChild?.firstChild?.firstChild?.firstChild;
   if (preBlock) {
     propsChangedObserver.observe(preBlock, propsChangedObserverConfig);
   }
 }
-const propsChangedObserverStop = () => {
+function propsChangedObserverStop() {
   propsChangedObserver.disconnect();
 }
 
 // Page changed
-const routeChangedCallback = () => {
+function routeChangedCallback() {
   console.debug(`#${pluginId}: page route changed`);
   // Content reloaded, so need reconnect props listeners
   propsChangedObserverStop();
-  // Rerender banner
-  render();
+
+  renderBanner();
+
   setTimeout(() => {
     propsChangedObserverRun();
   }, 200)
 }
 
-const onSettingsChangedCallback = () => {
+function onSettingsChangedCallback() {
   readPluginSettings();
-  setGlobalCSSVars();
-  toggleFeatures();
-  render();
+  setCSSVars();
+  renderBanner();
 }
 
-// Color mode changed
-const onThemeModeChangedCallback = () => {
+function onThemeModeChangedCallback() {
   setTimeout(() => {
     setWidgetPrimaryColors();
   }, 300)
 }
 
-const onCurrentGraphChangedCallback = async () => {
+async function onCurrentGraphChangedCallback() {
   currentGraph = (await logseq.App.getCurrentGraph());
 }
 
-const onPluginUnloadCallback = () => {
+function onPluginUnloadCallback() {
   // clean up
   top!.document.getElementById("banner")?.remove();
   body.classList.remove("is-banner-active");
   body.classList.remove("is-icon-active");
 }
 
-const renderPlaceholder = () => {
+function renderPlaceholder() {
   // Widgets area
   if (!doc.getElementById("banner")) {
     const container = doc.getElementById("main-content-container");
@@ -743,28 +655,24 @@ const renderPlaceholder = () => {
     }
   }
 }
-
-const showPlaceholder = () => {
+function showPlaceholder() {
   doc.getElementById("banner")!.style.display = "block";
 }
-
-const hidePlaceholder = () => {
+function hidePlaceholder() {
   doc.getElementById("banner")!.style.display = "none";
 }
 
-const renderWidgets = async () => {
+async function renderWidgets() {
   const isWidgetCalendarRendered = renderWidgetCalendar();
-  const isWidgetWeatherRendered = await renderWidgetWeather();
-  if (isWidgetCalendarRendered || isWidgetWeatherRendered) {
+  if (isWidgetCalendarRendered) {
     doc.getElementById("banner-widgets")?.classList.add("banner-widgets-bg");
   } else {
     doc.getElementById("banner-widgets")?.classList.remove("banner-widgets-bg");
   }
   renderWidgetQuote();
-  renderWidgetsCustom();
 }
 
-const renderWidgetCalendar = () => {
+function renderWidgetCalendar() {
   const bannerWidgetsCalendar = doc.getElementById("banner-widgets-calendar");
   if (widgetsConfig.calendar.enabled === "off" || (widgetsConfig.calendar.enabled === "journals" && !(isHome || isJournal))) {
     bannerWidgetsCalendar!.style.display = "none";
@@ -774,44 +682,7 @@ const renderWidgetCalendar = () => {
   return true;
 }
 
-const renderWidgetWeather = async () => {
-  const bannerWidgetsWeather = doc.getElementById("banner-widgets-weather");
-  if (widgetsConfig.weather.enabled === "off" || (widgetsConfig.weather.enabled === "journals" && !(isHome || isJournal))) {
-    bannerWidgetsWeather?.remove();
-    return false;
-  }
-  if (!bannerWidgetsWeather || isWidgetsWeatherChanged) {
-    bannerWidgetsWeather?.remove();
-    const weatherHTML= await getWeatherHTML()
-    doc.getElementById("banner-widgets")?.insertAdjacentHTML("beforeend", `<div id="banner-widgets-weather">${weatherHTML}</div>`);
-  }
-  return true;
-}
-
-const getWeatherHTML = async () => {
-  const weatherURL = `https://indify.co/widgets/live/weather/${widgetsConfig.weather.id}`;
-  let html = "";
-  let response = await fetch(weatherURL);
-  if (response && response.status === 200) {
-    html = await response.text();
-    if (html) {
-      html = html.replace(/src="/g, 'src="https://indify.co')
-                .replace(/flex-dir/g, "display:flex;flex-dir")
-                .replace(/__...../g, "");
-      var parser = new DOMParser();
-      var weatherDoc = parser.parseFromString(html, 'text/html');
-      weatherDoc.getElementById("weatherTemp")?.remove();
-      html = weatherDoc.querySelector("[class^=weather_container]")?.innerHTML || "";
-    }
-  }
-  else {
-    console.info(`#${pluginId}: HTTP-Error: ${response.status}`);
-  }
-  return html;
-}
-
-// Render random quote widget
-const renderWidgetQuote = async () => {
+async function renderWidgetQuote() {
   if (widgetsConfig.quote.enabled === "off" || (widgetsConfig.quote.enabled === "journals" && !(isHome || isJournal))) {
     doc.getElementById("banner-widgets-quote")?.remove();
     return;
@@ -836,7 +707,7 @@ const renderWidgetQuote = async () => {
   }
 }
 
-const getFontSize = (textLength: number): string => {
+function getFontSize(textLength: number): string {
   if(textLength > 200) {
     return "1.2em"
   }
@@ -846,7 +717,7 @@ const getFontSize = (textLength: number): string => {
   return "1.3em"
 }
 
-const replaceAsync = async (str: string, regex: RegExp, asyncFn: (match: any, ...args: any) => Promise<any>) => {
+async function replaceAsync(str: string, regex: RegExp, asyncFn: (match: any, ...args: any) => Promise<any>) {
   const promises: Promise<any>[] = []
   str.replace(regex, (match, ...args) => {
     promises.push(asyncFn(match, args))
@@ -856,7 +727,7 @@ const replaceAsync = async (str: string, regex: RegExp, asyncFn: (match: any, ..
   return str.replace(regex, () => data.shift())
 }
 
-export const cleanQuote = (text: string) => {
+export function cleanQuote(text: string) {
   const tag = widgetsConfig.quote.tag.replace("#", "");
 
   // User cleanup before
@@ -874,7 +745,7 @@ export const cleanQuote = (text: string) => {
     text = text.replaceAll(cleanupRegExp, "").trim()
   }
 
-  // Add Markdown bold, italics, strikethrough, highlight & code to HTML
+  // Add Markdown bold, italics, strike-through, highlight & code to HTML
   text = text.replaceAll(/\*\*(.*?)\*\*/g, "<b>$1</b>").replaceAll(/__(.*?)__/g, "<b>$1</b>");
   text = text.replaceAll(/\*(.*?)\*/g, "<i>$1</i>").replaceAll(/_(.*?)_/g, "<i>$1</i>");
   text = text.replaceAll(/==(.*?)==/g, "<mark>$1</mark>").replaceAll(/\^\^(.*?)\^\^/g, "<mark>$1</mark>");
@@ -897,7 +768,7 @@ export const cleanQuote = (text: string) => {
   return text;
 }
 
-const getRandomQuote = async () => {
+async function getRandomQuote() {
   const tag = widgetsConfig.quote.tag.replace('#', '');
   const query = `[
     :find ?content ?block-id
@@ -945,30 +816,11 @@ const getRandomQuote = async () => {
   return quoteHTML;
 }
 
-const renderWidgetsCustom = async () => {
-  const bannerWidgetsCustom = doc.getElementById("banner-widgets-custom");
-  if (widgetsConfig.custom.enabled === "off" || (widgetsConfig.custom.enabled === "journals" && !(isHome || isJournal))) {
-    bannerWidgetsCustom?.remove();
-    return;
-  }
-  if (!bannerWidgetsCustom || isWidgetsCustomCodeChanged) {
-    doc.getElementById("banner-widgets")?.insertAdjacentHTML("beforeend", `<div id="banner-widgets-custom">${widgetsConfig.custom.code}</div>`);
-  }
-}
-
-const setWidgetsCSSVars = () => {
-  setTimeout(() => {
-    setWidgetPrimaryColors();
-  }, 500)
-  root.style.setProperty("--widgetsCalendarWidth", widgetsConfig.calendar.width);
-}
-
-const render = async () => {
+async function renderBanner() {
   getPageType();
 
   if (!(isHome || isPage)) {
     clearBanner();
-    clearIcon();
     return;
   }
 
@@ -981,20 +833,18 @@ const render = async () => {
   if (pageAssetsData) {
     if (!pageAssetsData.banner || pageAssetsData.banner === "false" || pageAssetsData.banner === "off" || pageAssetsData.banner === "none" || pageAssetsData.banner === '""'  || pageAssetsData.banner === "''") {
       clearBanner();
-      clearIcon();
       return;
     }
 
-    const isBannerRendered = await renderImage(pageAssetsData, currentPageData);
+    const isBannerRendered = await _renderBanner(pageAssetsData, currentPageData);
     if (isBannerRendered) {
-      renderIcon(pageAssetsData);
       renderWidgets();
       showPlaceholder();
     }
   }
 }
 
-const commandSaveBanner = async () => {
+async function commandSaveBanner() {
   const currentPage = await getPageData();
   const properties = currentPage.properties ?? {};
 
@@ -1019,7 +869,7 @@ const commandSaveBanner = async () => {
   logseq.UI.showMsg("Current banner saved to page properties");
 }
 
-const main = async () => {
+async function main() {
   console.info(`#${pluginId}: Loaded`);
 
   currentGraph = (await logseq.App.getCurrentGraph());
@@ -1036,8 +886,8 @@ const main = async () => {
 
   setTimeout(() => {
     readPluginSettings();
-    setGlobalCSSVars();
-    render();
+    setCSSVars();
+    renderBanner();
   }, 500)
 
   // Listeners late run
@@ -1070,7 +920,7 @@ const main = async () => {
       onThemeModeChangedCallback();
     })
 
-    // Listen for grapth changed
+    // Listen for graph changed
     logseq.App.onCurrentGraphChanged( () => {
       onCurrentGraphChangedCallback();
     })
