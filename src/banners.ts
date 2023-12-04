@@ -31,7 +31,7 @@ let lastBannerURL: string;
 let autoPageBanner: boolean;
 let autoPageBannerSkipPrefixSeparator: string;
 const autoPageBannerURLPattern = "https://source.unsplash.com/1200x${height}?${title}";
-const pluginPageProps: Array<string> = ["banner", "banner-align"];
+const pluginPageProps: Array<string> = ["banner", "banner-align", "color"];
 
 const defaultCalendarWidth = 282
 const defaultBannerHeight = 220
@@ -420,7 +420,7 @@ function cleanBannerURL(url: string) {
   // remove surrounding quotations if present
   url = url.replace(/^"(.*)"$/, '$1');
 
-  if (url.startsWith("http://") || url.startsWith("https://"))
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith('data:'))
     return url;
 
   // local image from assets folder
@@ -446,7 +446,7 @@ async function _renderBanner(pageAssetsData: AssetData, currentPageData: any): P
     return false;
   }
 
-  if (currentPageData && currentPageData.properties && !currentPageData.properties["banner"]) {
+  if (currentPageData && !(currentPageData.properties && currentPageData.properties["banner"])) {
     if (autoPageBanner && pageAssetsData.title) {
       const defaultHeight = settingsArray.find(item => {return item.key == "pageBannerHeight"})!.default as string;
       const height = (pageAssetsData.bannerHeight || defaultHeight).replace("px", "");
@@ -755,8 +755,7 @@ async function renderBanner() {
 
   const currentPageData = await getPageData();
 
-  let pageAssetsData: AssetData | null = null;
-  pageAssetsData = await getPageAssetsData(currentPageData);
+  const pageAssetsData = await getPageAssetsData(currentPageData);
   if (pageAssetsData) {
     if (!pageAssetsData.banner || pageAssetsData.banner === "false" || pageAssetsData.banner === "off" || pageAssetsData.banner === "none" || pageAssetsData.banner === '""'  || pageAssetsData.banner === "''") {
       clearBanner();
