@@ -54,22 +54,88 @@ export const widgetsQuoteCleanupRegExps: RegExp[] = [
 
 const settingsArray: SettingSchemaDesc[] = [
   {
-    key: "generalHeading",
-    title: "⚙ General settings",
+    key: "hidePluginProps",
+    title: "",
+    description: "Hide plugin related page properties? (will be shown only on edit)",
+    type: "boolean",
+    default: true,
+  },
+
+    {
+    key: "journalHeading",
+    title: "📆 Journals",
     description: "",
     type: "heading",
     default: null
   },
   {
-    key: "hidePluginProps",
-    title: "",
-    description: "Hide plugin related page props? (will be shown only on edit)",
-    type: "boolean",
-    default: true,
+    key: "defaultJournalBanner",
+    title: "Default banner image (set empty to disable)",
+    description: "",
+    type: "string",
+    default: "https://images.unsplash.com/photo-1646026371686-79950ceb6daa?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1034&q=80",
   },
   {
+    key: "journalBannerHeight",
+    title: `Banner height (min: ${defaultBannerHeight}px)`,
+    description: "",
+    type: "string",
+    default: `${defaultBannerHeight}px`,
+  },
+  {
+    key: "journalBannerAlign",
+    title: "Default banner vertical align (in %)",
+    description: "",
+    type: "string",
+    default: `${defaultBannerAlign}%`,
+  },
+
+  {
+    key: "pageHeading",
+    title: "📄 Pages",
+    description: "",
+    type: "heading",
+    default: null
+  },
+  {
+    key: "defaultPageBanner",
+    title: "Default banner image (set empty to disable)",
+    description: "",
+    type: "string",
+    default: "https://wallpaperaccess.com/full/1146672.jpg",
+  },
+  {
+    key: "pageBannerHeight",
+    title: `Banner height for pages (min: ${defaultBannerHeight}px)`,
+    description: "",
+    type: "string",
+    default: `${defaultBannerHeight}px`,
+  },
+  {
+    key: "pageBannerAlign",
+    title: "Default banner vertical align for pages (in %)",
+    description: "",
+    type: "string",
+    default: `${defaultBannerAlign}%`,
+  },
+  {
+    key: "autoPageBanner",
+    title: "Turn on auto page banner mode?",
+    type: "boolean",
+    description: "Automatically find banner image according to the page *title*",
+    default: "false",
+  },
+  {
+    key: "autoPageBannerSkipPrefixSeparator",
+    title: "Auto banner finds images based on page name. This is separator to cut off the name prefix.",
+    type: "string",
+    description: "*Example*:<br>For page *«Author — Title»* only *«Title»* will be used to find banner image",
+    default: " — ",
+  },
+
+  {
     key: "widgetsCalendarHeading",
-    title: "📅 Widgets: calendar",
+    title: "📅 Calendar widget",
     description: "",
     type: "heading",
     default: null
@@ -77,7 +143,7 @@ const settingsArray: SettingSchemaDesc[] = [
   {
     key: "widgetsCalendarEnabled",
     title: "Show calendar?",
-    description: "⚠ check readme for instructions! https://github.com/yoyurec/logseq-banners-plugin",
+    description: "❗️Setup instructions:<br> https://github.com/stdword/logseq-banners-plugin/tree/main#calendar",
     type: "enum",
     enumPicker: "radio",
     enumChoices: ["off", "journals", "everywhere"],
@@ -85,45 +151,23 @@ const settingsArray: SettingSchemaDesc[] = [
   },
   {
     key: "widgetsCalendarWidth",
-    title: "Block calendar widget width (in px)",
+    title: `Calendar widget width (min: ${defaultCalendarWidth}px)`,
     description: "",
     type: "string",
-    default: "380px",
+    default: `${defaultCalendarWidth}px`,
   },
-  {
-    key: "widgetsWeatherHeading",
-    title: "⛅ Widgets: weather",
-    description: "",
-    type: "heading",
-    default: null
-  },
-  {
-    key: "widgetsWeatherEnabled",
-    title: "Show weather?",
-    description: "⚠ check readme for instructions! https://github.com/yoyurec/logseq-banners-plugin",
-    type: "enum",
-    enumPicker: "radio",
-    enumChoices: ["off", "journals", "everywhere"],
-    default: "journals",
-  },
-  {
-    key: "widgetsWeatherID",
-    title: "Weather ID",
-    description: "",
-    type: "string",
-    default: "7QOWaH4IPGGaAr4puql2",
-  },
+
   {
     key: "widgetsQuoteHeading",
-    title: "💬 Widgets: quote",
+    title: "💬 Quote widget",
     description: "",
     type: "heading",
     default: null
   },
   {
     key: "widgetsQuoteEnabled",
-    title: "Show random #quote?",
-    description: "⚠ check readme for instructions! https://github.com/yoyurec/logseq-banners-plugin",
+    title: "Show random quote?",
+    description: "",
     type: "enum",
     enumPicker: "radio",
     enumChoices: ["off", "journals", "everywhere"],
@@ -138,161 +182,17 @@ const settingsArray: SettingSchemaDesc[] = [
   },
   {
     key: "widgetsQuoteMaxWidth",
-    title: "Quote width limit (in chars)",
+    title: "Quote width limit (in characters, min: 20ch)",
     description: "",
     type: "string",
-    default: "48ch",
+    default: `${defaultQuoteMaxWidth}ch`,
   },
   {
     key: "widgetsQuoteSize",
-    title: "Quote font size (relative to default calculated, in %)",
+    title: "Quote font size relative to default (in %)",
     description: "",
     type: "string",
-    default: "100%",
-  },
-  {
-    key: "widgetsCustomHeading",
-    title: "📊 Widgets: custom",
-    description: "",
-    type: "heading",
-    default: null
-  },
-  {
-    key: "widgetsCustomEnabled",
-    title: "Show custom?",
-    description: "⚠ check readme for instructions! https://github.com/yoyurec/logseq-banners-plugin",
-    type: "enum",
-    enumPicker: "radio",
-    enumChoices: ["off", "journals", "everywhere"],
-    default: "everywhere",
-  },
-  {
-    key: "widgetsCustomCode",
-    title: "",
-    description: "Show custom HTML (iframe for ex.) as widget",
-    type: "string",
-    default: settingsWidgetsCustomCode,
-  },
-  {
-    key: "journalHeading",
-    title: "📆 Journal and home settings",
-    description: "",
-    type: "heading",
-    default: null
-  },
-  {
-    key: "defaultJournalBanner",
-    title: "Default banner for journal and home page (set empty to disable)",
-    description: "",
-    type: "string",
-    default: settingsDefaultJournalBanner,
-  },
-  {
-    key: "journalBannerHeight",
-    title: "Banner height for journal & home page",
-    description: "",
-    type: "string",
-    default: "280px",
-  },
-  {
-    key: "journalBannerAlign",
-    title: "Default banner vertical align for journal and home page",
-    description: "",
-    type: "string",
-    default: "50%"
-  },
-  {
-    key: "defaultJournalIcon",
-    title: "Default icon (emoji) for journal and home page (set empty to disable)",
-    description: "",
-    type: "string",
-    default: "📅",
-  },
-  {
-    key: "journalIconWidth",
-    title: "Icon width for journal & home page (in px)",
-    description: "",
-    type: "string",
-    default: "50px",
-  },
-  {
-    key: "pageHeading",
-    title: "📄 Common page settings",
-    description: "",
-    type: "heading",
-    default: null
-  },
-  {
-    key: "defaultPageBanner",
-    title: "Default banner for common page (set empty to disable)",
-    description: "",
-    type: "string",
-    default: settingsDefaultPageBanner,
-  },
-  {
-    key: "pageBannerHeight",
-    title: "Banner height for common page",
-    description: "",
-    type: "string",
-    default: "280px",
-  },
-  {
-    key: "pageBannerAlign",
-    title: "Default banner vertical align for common page",
-    description: "",
-    type: "string",
-    default: "50%"
-  },
-  {
-    key: "defaultPageIcon",
-    title: "Default icon (emoji) for common page (set empty to disable)",
-    description: "",
-    type: "string",
-    default: "📄",
-  },
-  {
-    key: "pageIconWidth",
-    title: "Icon width for common page (in px)",
-    description: "",
-    type: "string",
-    default: "40px",
-  },
-  {
-    key: "advancedHeading",
-    title: "☢️ Advanced settings",
-    description: "",
-    type: "heading",
-    default: null
-  },
-  {
-    key: "autoPageBanner",
-    title: "Turn on auto page banner mode?",
-    type: "boolean",
-    description: "Autogenerate banner image URL according to the page title",
-    default: "false",
-  },
-  {
-    key: "customPropsConfig",
-    title: "Custom pages banners and icons config",
-    description: "",
-    type: "object",
-    default: {
-      "pageType": {
-        "evrgrn": {
-          "pageIcon": "🌳",
-          "banner": "https://images.unsplash.com/photo-1502082553048-f009c37129b9?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80",
-          "bannerHeight": "200px",
-          "bannerAlign": "50%"
-        },
-        "seed": {
-          "pageIcon": "🌱",
-          "banner": "https://images.unsplash.com/photo-1631949454967-6c6d07fb59cd?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80",
-          "bannerHeight": "200px",
-          "bannerAlign": "50%"
-        }
-      },
-      "anotherCamalCasedPropName": {}
-    }
+    default: `${defaultQuoteSize}%`,
   },
   {
     // settings inside this object shouldn't be display in UI
