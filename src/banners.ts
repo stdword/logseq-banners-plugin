@@ -9,7 +9,7 @@ type AssetData = {
   banner?: string;
   bannerHeight?: string;
   bannerAlign?: string;
-  bannerKeywords: string;
+  bannerKeywords?: string;
 }
 
 const pluginId = PL.id;
@@ -389,7 +389,6 @@ async function getPageAssetsData(currentPageData: any): Promise<AssetData> {
         .split(',')
         .map((k: string) => k.trim())
         .join('-')
-      console.log('TRACING', {x: pageAssetsData.title})
     }
     else {
       let name = currentPageData.name
