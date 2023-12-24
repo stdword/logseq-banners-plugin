@@ -9,6 +9,7 @@ type AssetData = {
   banner?: string;
   bannerHeight?: string;
   bannerAlign?: string;
+  bannerKeywords: string;
 }
 
 const pluginId = PL.id;
@@ -31,7 +32,7 @@ let lastBannerURL: string;
 let autoPageBanner: boolean;
 let autoPageBannerSkipPrefixSeparator: string;
 const autoPageBannerURLPattern = "https://source.unsplash.com/1200x${height}?${title}";
-const pluginPageProps: Array<string> = ["banner", "banner-align", "color"];
+const pluginPageProps: Array<string> = ["banner", "banner-align", "banner-keywords", "color"];
 
 const defaultCalendarWidth = 282
 const defaultBannerHeight = 220
@@ -383,20 +384,33 @@ async function getPageAssetsData(currentPageData: any): Promise<AssetData> {
 
   // Add title
   if (currentPageData.name) {
-    let name = currentPageData.name.replaceAll(/[\])}[{(]/g, "").replaceAll("/", "-")
-
-    // TODO: my personal setup: review it when merging to main repo
-    const skipSuffix = autoPageBannerSkipPrefixSeparator
-    if (name.includes(skipSuffix)) {
-      name = name.split(skipSuffix).slice(1).join(skipSuffix)
+    if (pageAssetsData.bannerKeywords) {
+      pageAssetsData.title = pageAssetsData.bannerKeywords
+        .split(',')
+        .map((k: string) => k.trim())
+        .join('-')
+      console.log('TRACING', {x: pageAssetsData.title})
     }
+    else {
+      let name = currentPageData.name
 
-    pageAssetsData.title = (name
-      .split(" ")
-      .filter((x: string) => x.length > 3)
-      .slice(0, 3)
-      .join("-")
-    );
+      name = name.replaceAll(/[\])}[{(]/g, "")
+
+      const skipSuffix = autoPageBannerSkipPrefixSeparator
+      if (name.includes(skipSuffix))
+        name = name.split(skipSuffix).slice(1).join(skipSuffix)
+
+      name = name.split("/").reverse().join(" ")
+
+      name = (name
+        .split(" ")
+        .filter((x: string) => x.length > 3)
+        .slice(0, 6)
+        .join("-")
+      )
+
+      pageAssetsData.title = name
+    }
   }
 
   console.debug(`#${pluginId}:`, {pageAssetsData});
