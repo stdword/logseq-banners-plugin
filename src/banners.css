@@ -112,10 +112,14 @@ body:is([data-page="page"], [data-page="home"], [data-page="all-journals"]).is-b
     transition: none;
 }
 #banner-widgets-calendar .calendar-day-today {
-    background-color: rgba(var(--widgetsBgColor), 0.5);
+    background-color: transparent;
 }
 #banner-widgets-calendar .calendar-day:hover {
     background-color: rgba(var(--widgetsBgColor), 0.2);
+}
+#banner-widgets-calendar .calendar-day-selected,
+#banner-widgets-calendar .calendar-day-selected:hover {
+    background-color: rgba(var(--widgetsBgColor), 0.5);
 }
 
 
