@@ -87,7 +87,7 @@ body:is([data-page="page"], [data-page="home"], [data-page="all-journals"]).is-b
 
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
      "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-    text-shadow: 1px 1px 0px rgba(var(--widgetsBgColor), 0.8);
+/*    text-shadow: 1px 1px 0px rgba(var(--widgetsBgColor), 0.8);*/
     font-weight: bold;
 }
 #banner-widgets-calendar .calendar-month {
@@ -115,11 +115,11 @@ body:is([data-page="page"], [data-page="home"], [data-page="all-journals"]).is-b
     background-color: transparent;
 }
 #banner-widgets-calendar .calendar-day:hover {
-    background-color: rgba(var(--widgetsBgColor), 0.2);
+    background-color: rgba(var(--widgetsAccentColor), 0.3);
 }
 #banner-widgets-calendar .calendar-day-selected,
 #banner-widgets-calendar .calendar-day-selected:hover {
-    background-color: rgba(var(--widgetsBgColor), 0.5);
+    background-color: rgba(var(--widgetsAccentColor), 0.5);
 }
 
 

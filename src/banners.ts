@@ -216,8 +216,8 @@ function initStyles() {
 }
 
 function setCSSVars() {
-  setTimeout(() => {
-    setWidgetPrimaryColors();
+  setTimeout(async () => {
+    await setWidgetPrimaryColors();
   }, 500)
   root.style.setProperty("--widgetsCalendarWidth", widgetsConfig.calendar.width);
 }
@@ -320,11 +320,30 @@ function getRGBValues(color: string) {
   return `${rgbaArray[0]}, ${rgbaArray[1]}, ${rgbaArray[2]}`;
 }
 
-function setWidgetPrimaryColors() {
-  const primaryTextcolor = getComputedStyle(top!.document.documentElement).getPropertyValue('--ls-primary-text-color').trim();
-  root.style.setProperty("--widgetsTextColor", getRGBValues(primaryTextcolor));
-  const primaryBgcolor = getComputedStyle(top!.document.documentElement).getPropertyValue('--ls-primary-background-color').trim();
-  root.style.setProperty("--widgetsBgColor", getRGBValues(primaryBgcolor));
+async function setWidgetPrimaryColors() {
+  const vars = await loadThemeVars([
+    '--ls-primary-text-color',
+    '--ls-primary-background-color',
+    '--ls-secondary-background-color',
+
+    '--color-background',
+    '--color-foreground',
+
+    '--color-gray-09',
+    // '--lx-accent-08',
+  ])
+
+  root.style.setProperty("--widgetsTextColor", getRGBValues(vars['--ls-primary-text-color'] || vars['--color-foreground']));
+  root.style.setProperty("--widgetsBgColor", getRGBValues(vars['--ls-secondary-background-color'] || vars['--color-background']));
+  root.style.setProperty("--widgetsAccentColor", getRGBValues(vars['--ls-primary-background-color'] || vars['--color-gray-09']));
+}
+
+async function loadThemeVars(props: string[]) {
+  // @ts-ignore
+  const vals = await logseq.UI.resolveThemeCssPropsVals(props)
+  if (!vals)
+    return []
+  return vals
 }
 
 function hidePageProps() {
@@ -563,8 +582,8 @@ function onSettingsChangedCallback() {
 }
 
 function onThemeModeChangedCallback() {
-  setTimeout(() => {
-    setWidgetPrimaryColors();
+  setTimeout(async () => {
+    await setWidgetPrimaryColors();
   }, 300)
 }
 
