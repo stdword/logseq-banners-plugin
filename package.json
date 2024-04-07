@@ -8,7 +8,7 @@
     "preinstall": "npx only-allow pnpm",
     "test": "node --loader tsx --no-warnings --test ./tests/*.test.ts",
     "dev": "vite",
-    "build": "tsc && vite build --mode=dev",
+    "build": "vite build --mode=dev",
     "prod": "vite build"
   },
   "config": {
@@ -18,7 +18,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@logseq/libs": "0.0.14"
+    "@logseq/libs": "^0.0.17"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",
@@ -29,7 +29,7 @@
     "@typescript-eslint/parser": "^5.62.0",
     "conventional-changelog-conventionalcommits": "^5.0.0",
     "cz-conventional-changelog": "3.3.0",
-    "eslint": "^8.55.0",
+    "eslint": "^8.57.0",
     "global-jsdom": "^8.8.0",
     "ignore-styles": "^5.0.1",
     "jsdom": "^21.1.2",
